@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-KINETIC | Radar CEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
+        .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+    </style>
+</head>
+<body class="p-6 font-sans">
+
+    <div class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+        <div>
+            <h1 class="text-3xl font-black text-sky-400 tracking-wider neon-text"><i class="fa-solid fa-shield-halved mr-2"></i>Z-KINETIC</h1>
+            <p class="text-slate-400 text-sm mt-1">Sistem Pemantauan Perisai Automatik V4</p>
+        </div>
+        <div class="flex gap-3">
+            <input type="password" id="adminPass" placeholder="Kata Laluan Boss..." class="px-4 py-2 bg-slate-800 border border-slate-600 rounded text-sm focus:outline-none focus:border-sky-500">
+            <button onclick="muatLariData()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded shadow-lg transition-all"><i class="fa-solid fa-radar mr-2"></i>Scan</button>
+        </div>
+    </div>
+
+    <div class="glass-panel rounded-xl overflow-hidden shadow-2xl">
+        <div class="p-4 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+            <h2 class="font-bold text-lg text-white"><i class="fa-solid fa-users mr-2"></i>Klien Aktif</h2>
+            <button onclick="janaKunciBaru()" class="text-sm px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded font-semibold transition"><i class="fa-solid fa-plus mr-1"></i>Klien Baru</button>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-800 text-slate-300 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">Klien & Kunci</th>
+                        <th class="px-6 py-4">Pelan Langganan</th>
+                        <th class="px-6 py-4 text-center">API Hit (Bulan Ini)</th>
+                        <th class="px-6 py-4 text-center">Status Akses</th>
+                        <th class="px-6 py-4 text-center">Tindakan</th>
+                    </tr>
+                </thead>
+                <tbody id="senaraiKlien" class="divide-y divide-slate-700">
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500 italic">Sila masukkan kata laluan dan tekan Scan...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="statsModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50">
+        <div class="glass-panel p-6 rounded-xl w-full max-w-md relative">
+            <button onclick="tutupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-xl font-bold text-sky-400 mb-4" id="modalTitle">Statistik Ancaman</h3>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-slate-800 p-4 rounded text-center border border-slate-700">
+                    <p class="text-xs text-slate-400 uppercase">Jumlah Cubaan</p>
+                    <p class="text-2xl font-bold text-white mt-1" id="statTotal">0</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded text-center border border-slate-700">
+                    <p class="text-xs text-slate-400 uppercase">Bot Disekat</p>
+                    <p class="text-2xl font-bold text-red-400 mt-1" id="statBot">0</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded text-center border border-slate-700 col-span-2">
+                    <p class="text-xs text-slate-400 uppercase">Purata Markah Risiko</p>
+                    <p class="text-3xl font-black text-orange-400 mt-1" id="statRisk">0 / 100</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TUKAR URL INI DENGAN ALAMAT SERVER CAPTAIN
+        const API_URL = "https://api-dxtcyy6wma-as.a.run.app"; 
+
+        async function muatLariData() {
+            const pass = document.getElementById('adminPass').value;
+            if(!pass) return alert("Sila masukkan kata laluan boss!");
+
+            const table = document.getElementById('senaraiKlien');
+            table.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-sky-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengimbas pangkalan data...</td></tr>`;
+
+            try {
+                const res = await fetch(`${API_URL}/admin/list`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass }
+                });
+                
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+
+                table.innerHTML = '';
+                data.data.forEach(klien => {
+                    const usagePct = Math.round((klien.usageMonth / klien.planLimit) * 100) || 0;
+                    const barColor = usagePct > 80 ? 'bg-red-500' : 'bg-sky-500';
+                    const isExpired = Date.now() > klien.expiryDate;
+                    
+                    table.innerHTML += `
+                        <tr class="hover:bg-slate-800/50 transition duration-150">
+                            <td class="px-6 py-4">
+                                <p class="font-bold text-white">${klien.clientName}</p>
+                                <p class="text-xs text-slate-400 font-mono mt-1">${klien.id}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-bold rounded bg-indigo-900/50 text-indigo-300 border border-indigo-700">${klien.plan || 'STARTER'}</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="w-full bg-slate-700 rounded-full h-2 mt-2">
+                                    <div class="${barColor} h-2 rounded-full" style="width: ${Math.min(usagePct, 100)}%"></div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">${klien.usageMonth || 0} / ${klien.planLimit}</p>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                ${isExpired 
+                                    ? '<span class="text-red-400 text-xs font-bold"><i class="fa-solid fa-lock mr-1"></i>LUPUT</span>'
+                                    : '<span class="text-emerald-400 text-xs font-bold"><i class="fa-solid fa-check-circle mr-1"></i>AKTIF</span>'}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="paparStatistik('${klien.id}', '${klien.clientName}')" class="text-sky-400 hover:text-sky-300 mr-3" title="Lihat Statistik Analisis"><i class="fa-solid fa-chart-pie"></i></button>
+                                <button onclick="padamKunci('${klien.id}')" class="text-red-500 hover:text-red-400" title="Hancurkan Kunci"><i class="fa-solid fa-trash-can"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+            } catch(e) {
+                table.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-red-400"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Ralat: ${e.message}</td></tr>`;
+            }
+        }
+
+        async function paparStatistik(apiKey, nama) {
+            const modal = document.getElementById('statsModal');
+            document.getElementById('modalTitle').innerText = `Statistik: ${nama}`;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            try {
+                const res = await fetch(`${API_URL}/stats`, { headers: { 'x-api-key': apiKey } });
+                const data = await res.json();
+                
+                if(data.stats) {
+                    document.getElementById('statTotal').innerText = data.stats.totalAttempts;
+                    document.getElementById('statBot').innerText = data.stats.botBlocked;
+                    document.getElementById('statRisk').innerText = data.stats.avgRiskScore;
+                }
+            } catch(e) {
+                alert("Gagal memuat turun statistik terperinci.");
+            }
+        }
+
+        function tutupModal() {
+            const modal = document.getElementById('statsModal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        async function janaKunciBaru() {
+            const pass = document.getElementById('adminPass').value;
+            if(!pass) return alert("Masukkan password admin dulu!");
+            
+            let nama = prompt("Masukkan Nama Syarikat / Klien Baru:");
+            if(!nama) return;
+
+            try {
+                const res = await fetch(`${API_URL}/admin/cetak`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+                    body: JSON.stringify({ clientName: nama, plan: 'STARTER' })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert("Kunci Baru Dijana: " + data.kunci_rahsia);
+                    muatLariData();
+                } else {
+                    alert("Ralat: " + data.error);
+                }
+            } catch(e) { alert("Ralat Server!"); }
+        }
+
+        async function padamKunci(apiKey) {
+            const pass = document.getElementById('adminPass').value;
+            if(!confirm("AMARAN: Kunci ini akan dihancurkan. Pasti?")) return;
+
+            try {
+                const res = await fetch(`${API_URL}/admin/padam`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+                    body: JSON.stringify({ apiKey: apiKey })
+                });
+                const data = await res.json();
+                if(data.success) muatLariData();
+            } catch(e) { alert("Ralat Server!"); }
+        }
+    </script>
+</body>
+</html>
