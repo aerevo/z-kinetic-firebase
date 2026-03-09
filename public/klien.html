@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-KINETIC | Portal Klien</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
+        .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        
+        /* SISTEM DWIBAHASA */
+        body.lang-en .lang-ms { display: none !important; }
+        body.lang-ms .lang-en { display: none !important; }
+    </style>
+</head>
+<body class="lang-ms p-6 font-sans flex items-center justify-center min-h-screen">
+
+    <div class="glass-panel p-8 rounded-2xl w-full max-w-lg shadow-2xl relative">
+        <button onclick="tukarBahasa()" class="absolute top-6 right-6 text-slate-400 hover:text-white font-bold px-3 py-1 border border-slate-700 rounded bg-slate-800/50 transition-all text-xs">
+            <span class="lang-ms">ENG</span>
+            <span class="lang-en">BM</span>
+        </button>
+
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-black text-sky-400 tracking-wider neon-text"><i class="fa-solid fa-chart-pie mr-2"></i>Z-KINETIC</h1>
+            <p class="text-slate-400 text-sm mt-2">
+                <span class="lang-ms">Portal Analitik Klien</span>
+                <span class="lang-en">Client Analytics Portal</span>
+            </p>
+        </div>
+
+        <div id="loginBox">
+            <label class="block text-slate-400 text-xs font-bold mb-2 uppercase">
+                <span class="lang-ms">App ID Anda (zk_live_...)</span>
+                <span class="lang-en">Your App ID (zk_live_...)</span>
+            </label>
+            <input type="text" id="apiKeyInput" placeholder="zk_live_xxxxxxxxxx" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white mb-4 focus:outline-none focus:border-sky-500">
+            <button onclick="semakStatistik()" class="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+                <i class="fa-solid fa-magnifying-glass mr-2"></i> 
+                <span class="lang-ms">Semak Statistik</span>
+                <span class="lang-en">Check Statistics</span>
+            </button>
+        </div>
+
+        <div id="statsBox" class="hidden mt-6">
+            <div class="border-b border-slate-700 pb-4 mb-4">
+                <h2 class="text-xl font-bold text-white" id="clientNameDisplay">Syarikat ABC</h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    <span class="lang-ms">Pelan: </span><span class="lang-en">Plan: </span> 
+                    <span id="planDisplay" class="font-bold text-sky-400">STARTER</span>
+                </p>
+                <div class="w-full bg-slate-800 rounded-full h-2 mt-3">
+                    <div id="usageBar" class="bg-sky-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-slate-400 mt-1 text-right" id="usageText">0 / 100000 Hits</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
+                    <p class="text-xs text-slate-400 uppercase">
+                        <span class="lang-ms">Total Percubaan</span><span class="lang-en">Total Attempts</span>
+                    </p>
+                    <p class="text-2xl font-bold text-white mt-1" id="statTotal">0</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
+                    <p class="text-xs text-slate-400 uppercase">
+                        <span class="lang-ms">Pengesahan Berjaya</span><span class="lang-en">Successful Verifications</span>
+                    </p>
+                    <p class="text-2xl font-bold text-emerald-400 mt-1" id="statSuccess">0</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-red-900/50 text-center col-span-2">
+                    <p class="text-xs text-red-400 uppercase font-bold"><i class="fa-solid fa-robot mr-1"></i> 
+                        <span class="lang-ms">Serangan Bot Disekat</span><span class="lang-en">Bot Attacks Blocked</span>
+                    </p>
+                    <p class="text-3xl font-black text-red-500 mt-1" id="statBlocked">0</p>
+                </div>
+            </div>
+            
+            <button onclick="keluar()" class="w-full mt-6 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded transition-all text-sm">
+                <span class="lang-ms">Log Keluar</span><span class="lang-en">Log Out</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api-dxtcyy6wma-as.a.run.app";
+
+        // LOGIK DWIBAHASA
+        function tukarBahasa() {
+            const body = document.body;
+            if (body.classList.contains('lang-ms')) {
+                body.classList.replace('lang-ms', 'lang-en');
+                localStorage.setItem('zk_lang', 'en');
+            } else {
+                body.classList.replace('lang-en', 'lang-ms');
+                localStorage.setItem('zk_lang', 'ms');
+            }
+        }
+        window.onload = () => {
+            if (localStorage.getItem('zk_lang') === 'en') document.body.classList.replace('lang-ms', 'lang-en');
+        };
+
+        async function semakStatistik() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const isEng = document.body.classList.contains('lang-en');
+            if(!apiKey) return alert(isEng ? "Please enter your App ID." : "Sila masukkan App ID anda.");
+            
+            const btn = document.querySelector('button[onclick="semakStatistik()"]');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading...`;
+            
+            try {
+                const res = await fetch(`${API_URL}/stats`, { headers: { 'x-api-key': apiKey } });
+                const data = await res.json();
+                
+                if(data.error) throw new Error(data.error);
+
+                document.getElementById('loginBox').classList.add('hidden');
+                document.getElementById('statsBox').classList.remove('hidden');
+
+                document.getElementById('clientNameDisplay').innerText = data.clientName;
+                document.getElementById('planDisplay').innerText = data.plan;
+                document.getElementById('statTotal').innerText = data.stats.totalAttempts;
+                document.getElementById('statSuccess').innerText = data.stats.successCount;
+                document.getElementById('statBlocked').innerText = data.stats.botBlocked;
+                
+                const usagePct = Math.min((data.usageMonth / data.planLimit) * 100, 100);
+                document.getElementById('usageBar').style.width = `${usagePct}%`;
+                document.getElementById('usageBar').className = usagePct > 80 ? 'bg-red-500 h-2 rounded-full' : 'bg-sky-500 h-2 rounded-full';
+                document.getElementById('usageText').innerText = `${data.usageMonth} / ${data.planLimit} Hits`;
+            } catch(e) {
+                alert(isEng ? "Invalid App ID or Server Error." : "App ID tidak sah atau ralat pelayan.");
+            } finally {
+                btn.innerHTML = isEng ? `<i class="fa-solid fa-magnifying-glass mr-2"></i> Check Statistics` : `<i class="fa-solid fa-magnifying-glass mr-2"></i> Semak Statistik`;
+            }
+        }
+
+        function keluar() {
+            document.getElementById('apiKeyInput').value = '';
+            document.getElementById('loginBox').classList.remove('hidden');
+            document.getElementById('statsBox').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

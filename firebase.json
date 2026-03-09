@@ -1,0 +1,23 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/demo/**",
+        "function": "zTicketApp"
+      },
+      {
+        "source": "/api/demo/**",
+        "function": "zTicketApp"
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions"
+  }
+}

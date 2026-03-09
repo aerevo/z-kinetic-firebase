@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-TICKET | Demo Serangan Bot</title>
+    <script src="/sdk/z-kinetic.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #020617; color: #f8fafc; }
+        .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid #1e293b; }
+        .neon-border { border: 1px solid #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black text-sky-400 mb-2">🎫 Z-TICKET TARGET</h1>
+            <p class="text-slate-400">Makmal Simulasi Serangan Bot & Pertahanan Z-Kinetic</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-panel p-6 rounded-2xl border-sky-900/50">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fa-solid fa-gears mr-2 text-sky-400"></i> Konfigurasi Perisai
+                </h3>
+                
+                <div class="space-y-4">
+                    <button onclick="setMode('clean')" id="btn-clean" class="w-full py-3 rounded-xl font-bold transition-all border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white">
+                        <i class="fa-solid fa-shield-slash mr-2"></i> MOD CLEAN (Tiada Perisai)
+                    </button>
+                    
+                    <button onclick="setMode('integrated')" id="btn-integrated" class="w-full py-3 rounded-xl font-bold transition-all border border-emerald-500/50 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white">
+                        <i class="fa-solid fa-shield-halved mr-2"></i> MOD INTEGRATED (Z-Kinetic)
+                    </button>
+                </div>
+
+                <div class="mt-8 p-4 bg-slate-900 rounded-lg border border-slate-800">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Statistik Live</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <p class="text-2xl font-black text-white" id="stat-sold">0</p>
+                            <p class="text-[10px] text-slate-500">TIKET TERJUAL</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-black text-red-500" id="stat-blocked">0</p>
+                            <p class="text-[10px] text-slate-500">BOT DIKAT</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="event-container" class="space-y-4">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const APP_ID = 'zk_live_37c3756c7c5466c3a606e051907acecd';
+        let currentMode = localStorage.getItem('demo_mode') || 'clean';
+
+        // Update UI butang mod
+        function updateModeUI() {
+            const isInt = currentMode === 'integrated';
+            document.getElementById('btn-clean').className = !isInt ? 'w-full py-3 rounded-xl font-bold bg-red-500 text-white' : 'w-full py-3 rounded-xl font-bold border border-red-500/50 text-red-500';
+            document.getElementById('btn-integrated').className = isInt ? 'w-full py-3 rounded-xl font-bold bg-emerald-500 text-white' : 'w-full py-3 rounded-xl font-bold border border-emerald-500/50 text-emerald-500';
+        }
+
+        function setMode(m) {
+            currentMode = m;
+            localStorage.setItem('demo_mode', m);
+            updateModeUI();
+            alert("Sistem ditukar ke Mod: " + m.toUpperCase());
+        }
+
+        async function loadStats() {
+            const res = await fetch('/api/demo/stats');
+            const data = await res.json();
+            
+            document.getElementById('stat-sold').innerText = data.stats.totalPurchases;
+            document.getElementById('stat-blocked').innerText = data.stats.blockedBots;
+
+            document.getElementById('event-container').innerHTML = Object.keys(data.tickets).map(id => {
+                const t = data.tickets[id];
+                return `
+                    <div class="glass-panel p-5 rounded-2xl border-slate-800 hover:neon-border transition-all">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-lg">${t.name}</h4>
+                                <p class="text-emerald-400 font-mono text-sm">RM ${t.price}</p>
+                            </div>
+                            <span class="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400">Tersedia: ${t.available}</span>
+                        </div>
+                        <button onclick="handlePurchase(${id})" class="w-full mt-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all">
+                            BELI TIKET
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handlePurchase(eventId) {
+            if (currentMode === 'clean') {
+                // MOD CLEAN: Terus hantar request (Vulnerable to Fatboy)
+                processPurchase(eventId, false);
+            } else {
+                // MOD INTEGRATED: Mesti lepas Z-Kinetic dulu
+                ZKinetic.verify({
+                    appId: APP_ID,
+                    onSuccess: () => {
+                        processPurchase(eventId, true);
+                    },
+                    onFail: (err) => {
+                        alert("SEKATAN AKTIF: " + err);
+                    }
+                });
+            }
+        }
+
+        async function processPurchase(eventId, isHuman) {
+            try {
+                const res = await fetch('/api/demo/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ eventId, isVerifiedHuman: isHuman })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert("✅ TIKET BERJAYA DIBELI!");
+                } else {
+                    alert("❌ GAGAL: " + data.error);
+                }
+                loadStats();
+            } catch (e) {
+                alert("Ralat Server!");
+            }
+        }
+
+        updateModeUI();
+        loadStats();
+        setInterval(loadStats, 5000);
+    </script>
+</body>
+</html>

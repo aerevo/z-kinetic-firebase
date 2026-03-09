@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-KINETIC | Radar CEO V5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
+        .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .tab-active { border-bottom: 2px solid #38bdf8; color: #38bdf8; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #94a3b8; }
+        
+        /* SISTEM DWIBAHASA */
+        body.lang-en .lang-ms { display: none !important; }
+        body.lang-ms .lang-en { display: none !important; }
+    </style>
+</head>
+<body class="lang-ms p-6 font-sans">
+
+    <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+        <div>
+            <h1 class="text-3xl font-black text-sky-400 tracking-wider neon-text"><i class="fa-solid fa-shield-halved mr-2"></i>Z-KINETIC</h1>
+            <p class="text-slate-400 text-sm mt-1">
+                <span class="lang-ms">Radar Korporat & Firewall V5</span>
+                <span class="lang-en">Corporate Radar & Firewall V5</span>
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="tukarBahasa()" class="text-slate-400 hover:text-white font-bold px-3 py-2 border border-slate-700 rounded bg-slate-800/50 transition-all text-xs">
+                <span class="lang-ms">ENG</span><span class="lang-en">BM</span>
+            </button>
+            <input type="password" id="adminPass" placeholder="Password..." class="px-4 py-2 bg-slate-800 border border-slate-600 rounded text-sm focus:outline-none focus:border-sky-500 w-32 md:w-48">
+            <button onclick="imbasSemua()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded shadow-lg transition-all"><i class="fa-solid fa-radar mr-2"></i>Scan</button>
+        </div>
+    </div>
+
+    <div class="flex gap-6 mb-4 px-2">
+        <button onclick="tukarTab('klien')" id="tabKlien" class="pb-2 font-bold tab-active transition-all">
+            <i class="fa-solid fa-users mr-2"></i>
+            <span class="lang-ms">Pengurusan Klien</span><span class="lang-en">Client Management</span>
+        </button>
+        <button onclick="tukarTab('banned')" id="tabBanned" class="pb-2 font-bold tab-inactive hover:text-sky-300 transition-all">
+            <i class="fa-solid fa-skull-crossbones mr-2"></i>
+            <span class="lang-ms">Penjara Hacker (Banned IPs)</span><span class="lang-en">Hacker Jail (Banned IPs)</span>
+        </button>
+    </div>
+
+    <div id="panelKlien" class="glass-panel rounded-xl overflow-hidden shadow-2xl block">
+        <div class="p-4 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+            <h2 class="font-bold text-lg text-white">
+                <span class="lang-ms">Senarai Klien Aktif</span><span class="lang-en">Active Client List</span>
+            </h2>
+            <button onclick="janaKunciBaru()" class="text-sm px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded font-semibold transition">
+                <i class="fa-solid fa-plus mr-1"></i>
+                <span class="lang-ms">Klien Baru</span><span class="lang-en">New Client</span>
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-800 text-slate-300 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-4"><span class="lang-ms">Klien & App ID</span><span class="lang-en">Client & App ID</span></th>
+                        <th class="px-6 py-4"><span class="lang-ms">Pelan</span><span class="lang-en">Plan</span></th>
+                        <th class="px-6 py-4 text-center"><span class="lang-ms">API Hit (Bulan Ini)</span><span class="lang-en">API Hits (This Month)</span></th>
+                        <th class="px-6 py-4 text-center"><span class="lang-ms">Status</span><span class="lang-en">Status</span></th>
+                        <th class="px-6 py-4 text-center"><span class="lang-ms">Tindakan</span><span class="lang-en">Action</span></th>
+                    </tr>
+                </thead>
+                <tbody id="senaraiKlien" class="divide-y divide-slate-700">
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500 italic"><span class="lang-ms">Sila masukkan kata laluan dan tekan Scan...</span><span class="lang-en">Please enter password and press Scan...</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="panelBanned" class="glass-panel rounded-xl overflow-hidden shadow-2xl hidden border-red-900/50">
+        <div class="p-4 bg-red-900/20 border-b border-slate-700 flex justify-between items-center">
+            <h2 class="font-bold text-lg text-red-400"><i class="fa-solid fa-lock mr-2"></i>
+                <span class="lang-ms">Log Sekatan WAF</span><span class="lang-en">WAF Block Logs</span>
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-800 text-slate-300 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">IP Address</th>
+                        <th class="px-6 py-4 text-center">Strikes</th>
+                        <th class="px-6 py-4"><span class="lang-ms">Sebab</span><span class="lang-en">Reason</span></th>
+                        <th class="px-6 py-4"><span class="lang-ms">Status</span><span class="lang-en">Status</span></th>
+                        <th class="px-6 py-4 text-center"><span class="lang-ms">Tindakan</span><span class="lang-en">Action</span></th>
+                    </tr>
+                </thead>
+                <tbody id="senaraiBanned" class="divide-y divide-slate-700">
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500 italic"><span class="lang-ms">Tiada data sekatan.</span><span class="lang-en">No banned data.</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api-dxtcyy6wma-as.a.run.app"; 
+
+        function tukarBahasa() {
+            const body = document.body;
+            if (body.classList.contains('lang-ms')) {
+                body.classList.replace('lang-ms', 'lang-en');
+                localStorage.setItem('zk_lang', 'en');
+            } else {
+                body.classList.replace('lang-en', 'lang-ms');
+                localStorage.setItem('zk_lang', 'ms');
+            }
+        }
+        window.onload = () => {
+            if (localStorage.getItem('zk_lang') === 'en') document.body.classList.replace('lang-ms', 'lang-en');
+        };
+
+        function tukarTab(tab) {
+            if(tab === 'klien') {
+                document.getElementById('panelKlien').classList.remove('hidden');
+                document.getElementById('panelBanned').classList.add('hidden');
+                document.getElementById('tabKlien').className = 'pb-2 font-bold tab-active transition-all';
+                document.getElementById('tabBanned').className = 'pb-2 font-bold tab-inactive hover:text-sky-300 transition-all';
+            } else {
+                document.getElementById('panelKlien').classList.add('hidden');
+                document.getElementById('panelBanned').classList.remove('hidden');
+                document.getElementById('tabKlien').className = 'pb-2 font-bold tab-inactive hover:text-sky-300 transition-all';
+                document.getElementById('tabBanned').className = 'pb-2 font-bold text-red-400 border-b-2 border-red-400 transition-all';
+            }
+        }
+
+        async function imbasSemua() {
+            const pass = document.getElementById('adminPass').value;
+            const isEng = document.body.classList.contains('lang-en');
+            if(!pass) return alert(isEng ? "Please enter boss password!" : "Sila masukkan kata laluan boss!");
+            
+            await muatLariData(pass, isEng);
+            await muatLariBanned(pass, isEng);
+        }
+
+        async function muatLariData(pass, isEng) {
+            const table = document.getElementById('senaraiKlien');
+            table.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-sky-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</td></tr>`;
+            try {
+                const res = await fetch(`${API_URL}/admin/list`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass } });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+
+                table.innerHTML = '';
+                data.data.forEach(klien => {
+                    const usagePct = Math.round((klien.usageMonth / klien.planLimit) * 100) || 0;
+                    const isExpired = Date.now() > klien.expiryDate;
+                    const statusText = isExpired ? (isEng ? 'EXPIRED' : 'LUPUT') : 'ACTIVE';
+                    const statusColor = isExpired ? 'text-red-400' : 'text-emerald-400';
+                    
+                    table.innerHTML += `
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="px-6 py-4"><p class="font-bold text-white">${klien.clientName}</p><p class="text-xs text-slate-400 font-mono mt-1">${klien.id}</p></td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-bold rounded bg-indigo-900/50 text-indigo-300 border border-indigo-700">${klien.plan || 'STARTER'}</span></td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="w-full bg-slate-700 rounded-full h-2 mt-2"><div class="${usagePct > 80 ? 'bg-red-500' : 'bg-sky-500'} h-2 rounded-full" style="width: ${Math.min(usagePct, 100)}%"></div></div>
+                                <p class="text-xs text-slate-400 mt-1">${klien.usageMonth || 0} / ${klien.planLimit}</p>
+                            </td>
+                            <td class="px-6 py-4 text-center"><span class="${statusColor} text-xs font-bold">${statusText}</span></td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="padamKunci('${klien.id}')" class="text-red-500 hover:text-red-400" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { table.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-red-400">Error: ${e.message}</td></tr>`; }
+        }
+
+        async function muatLariBanned(pass, isEng) {
+            const table = document.getElementById('senaraiBanned');
+            try {
+                const res = await fetch(`${API_URL}/admin/banned`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass } });
+                const data = await res.json();
+                
+                table.innerHTML = '';
+                if(data.data && data.data.length > 0) {
+                    data.data.forEach(item => {
+                        const isBanned = item.bannedUntil && Date.now() < item.bannedUntil;
+                        let statusHtml = isBanned ? `<span class="text-red-500 font-bold"><i class="fa-solid fa-ban mr-1"></i>Banned</span>` : `<span class="text-orange-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Warning</span>`;
+                        
+                        table.innerHTML += `
+                            <tr class="hover:bg-slate-800/50">
+                                <td class="px-6 py-4 font-mono text-sky-300 font-bold">${item.ip}</td>
+                                <td class="px-6 py-4 text-center font-bold text-white text-lg">${item.strikes}</td>
+                                <td class="px-6 py-4 text-slate-400 text-xs">${item.lastReason || 'N/A'}</td>
+                                <td class="px-6 py-4">${statusHtml}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button onclick="unbanIp('${item.ip}')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold transition"><i class="fa-solid fa-unlock mr-1"></i>Unban</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    table.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-emerald-500 font-bold"><i class="fa-solid fa-shield-check mr-2"></i>${isEng ? 'System clean. No threats recorded.' : 'Sistem bersih. Tiada ancaman.'}</td></tr>`;
+                }
+            } catch(e) { table.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-red-400">Error loading WAF data.</td></tr>`; }
+        }
+
+        async function unbanIp(ip) {
+            const pass = document.getElementById('adminPass').value;
+            const isEng = document.body.classList.contains('lang-en');
+            if(!confirm(isEng ? `WARNING: Unban IP ${ip}?` : `AMARAN: Lepaskan sekatan IP ${ip}?`)) return;
+            try {
+                const res = await fetch(`${API_URL}/admin/unban`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass }, body: JSON.stringify({ ip: ip }) });
+                const data = await res.json();
+                if(data.success) { alert(data.message); imbasSemua(); }
+            } catch(e) { alert("Server Error!"); }
+        }
+
+        async function janaKunciBaru() {
+            const pass = document.getElementById('adminPass').value;
+            const isEng = document.body.classList.contains('lang-en');
+            if(!pass) return alert(isEng ? "Enter admin password first!" : "Masukkan password admin dulu!");
+            let nama = prompt(isEng ? "Enter New Client Name:" : "Masukkan Nama Klien Baru:");
+            if(!nama) return;
+            try {
+                const res = await fetch(`${API_URL}/admin/cetak`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass }, body: JSON.stringify({ clientName: nama, plan: 'STARTER' }) });
+                const data = await res.json();
+                if(data.success) { alert((isEng ? "New App ID Generated: " : "App ID Baru Dijana: ") + data.kunci_rahsia); imbasSemua(); }
+            } catch(e) { alert("Server Error!"); }
+        }
+
+        async function padamKunci(apiKey) {
+            const pass = document.getElementById('adminPass').value;
+            const isEng = document.body.classList.contains('lang-en');
+            if(!confirm(isEng ? "WARNING: Destroy this App ID? Are you sure?" : "AMARAN: Hancurkan App ID ini. Pasti?")) return;
+            try {
+                const res = await fetch(`${API_URL}/admin/padam`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass }, body: JSON.stringify({ apiKey: apiKey }) });
+                const data = await res.json();
+                if(data.success) imbasSemua();
+            } catch(e) { alert("Server Error!"); }
+        }
+    </script>
+</body>
+</html>

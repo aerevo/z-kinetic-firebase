@@ -1,0 +1,124 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasValidDeviceId() {
+      return request.resource.data.device_id is string 
+             && request.resource.data.device_id.size() > 10;
+    }
+    
+    function hasValidNonce() {
+      return request.resource.data.session_id is string
+             && request.resource.data.session_id.size() > 10;
+    }
+    
+    function isNotRateLimited() {
+      let deviceId = request.resource.data.device_id;
+      let rateLimitDoc = get(/databases/$(database)/documents/rate_limits/$(deviceId));
+      
+      // Allow if no rate limit doc exists (first report)
+      return !exists(/databases/$(database)/documents/rate_limits/$(deviceId))
+             || (rateLimitDoc.data.last_report.toMillis() + 300000) < request.time.toMillis();
+      // 300000ms = 5 minutes
+    }
+    
+    function isNotBlacklisted() {
+      let deviceId = request.resource.data.device_id;
+      return !exists(/databases/$(database)/documents/blacklisted_devices/$(deviceId));
+    }
+    
+    function hasValidIntegrityToken() {
+      return request.resource.data.integrity_token is string
+             && request.resource.data.integrity_token.size() > 50;
+    }
+    
+    // ============================================
+    // GLOBAL THREAT INTELLIGENCE (Main Collection)
+    // ============================================
+    
+    match /global_threat_intel/{threatId} {
+      // ✅ WRITE: Only authenticated users with valid conditions
+      allow create: if isAuthenticated()
+                    && hasValidDeviceId()
+                    && hasValidNonce()
+                    && isNotRateLimited()
+                    && isNotBlacklisted()
+                    && hasValidIntegrityToken()
+                    && request.resource.data.keys().hasAll([
+                         'threat_type', 'severity', 'device_id', 
+                         'session_id', 'integrity_token', 'timestamp'
+                       ]);
+      
+      // ❌ NO UPDATE/DELETE from clients
+      allow update, delete: if false;
+      
+      // ✅ READ: Admin dashboard only (server-side)
+      allow read: if false; // Clients should NOT read this
+    }
+    
+    // ============================================
+    // RATE LIMITS COLLECTION
+    // ============================================
+    
+    match /rate_limits/{deviceId} {
+      // Server-only: Cloud Functions update this
+      allow read, write: if false;
+    }
+    
+    // ============================================
+    // USED NONCES COLLECTION (Replay Protection)
+    // ============================================
+    
+    match /used_nonces/{nonceId} {
+      // Server-only: Cloud Functions manage this
+      allow read, write: if false;
+    }
+    
+    // ============================================
+    // BLACKLISTED DEVICES
+    // ============================================
+    
+    match /blacklisted_devices/{deviceId} {
+      // Server-only writes
+      allow read: if isAuthenticated() 
+                  && request.auth.uid == deviceId;
+      allow write: if false;
+    }
+    
+    // ============================================
+    // THREAT STATISTICS (Analytics Dashboard)
+    // ============================================
+    
+    match /threat_statistics/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+    
+    // ============================================
+    // BANK ALERTS
+    // ============================================
+    
+    match /bank_alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+    
+    // ============================================
+    // THREAT ANALYTICS
+    // ============================================
+    
+    match /threat_analytics/{analyticsId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+  }
+}
